@@ -53,6 +53,7 @@ function! s:RangerOpenDir(...)
 
 	" Open ranger in nvim terminal
 	call termopen('ranger ' . opts, rangerCallback)
+	setlocal filetype=ranger
 	startinsert
 endfunction
 
