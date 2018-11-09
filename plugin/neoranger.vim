@@ -52,7 +52,7 @@ function! s:RangerOpenDir(...)
 	let w:_ranger_del_buf = bufnr('%')
 
 	" Open ranger in nvim terminal
-	call termopen('ranger ' . opts, rangerCallback)
+	call termopen('command ranger ' . opts, rangerCallback)
 	setlocal filetype=ranger
 	startinsert
 endfunction
