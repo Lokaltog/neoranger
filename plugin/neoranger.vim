@@ -18,6 +18,11 @@ function! s:RangerOpenDir(...)
 	else
 		let opts .= ' ' . shellescape(path)
 	endif
+
+	if exists('g:neoranger_opts')
+		let opts .= ' ' . g:neoranger_opts
+	endif
+
 	let rangerCallback = {}
 
 	function! rangerCallback.on_exit(id, code, _event)
