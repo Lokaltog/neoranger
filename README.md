@@ -39,3 +39,15 @@ nnoremap <silent> - :RangerCurrentFile<CR>
 " Open ranger in current working directory
 nnoremap <silent> <Leader>r :Ranger<CR>
 ```
+
+## Options
+
+Neoranger has the following options:
+
+```vim
+" for setting ranger viewmode values
+let g:neoranger_viewmode='multipane' " supported values are ['multipane', 'miller']
+
+" for setting any extra option passed to ranger params
+let g:neoranger_opts='--cmd="set show_hidden true"' " this line makes ranger show hidden files by default
+```
