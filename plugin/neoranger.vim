@@ -6,14 +6,23 @@ function! s:RangerOpenDir(...)
 		return
 	endif
 
+	if !exists('g:neoranger_viewmode')
+		let g:neoranger_viewmode='multipane'
+	endif
+
 	let s:ranger_tempfile = tempname()
-	let opts = ' --cmd="set viewmode multipane"'
+	let opts = ' --cmd="set viewmode '. g:neoranger_viewmode .'"'
 	let opts .= ' --choosefiles=' . shellescape(s:ranger_tempfile)
 	if a:0 > 1
 		let opts .= ' --selectfile='. shellescape(a:2)
 	else
 		let opts .= ' ' . shellescape(path)
 	endif
+
+	if exists('g:neoranger_opts')
+		let opts .= ' ' . g:neoranger_opts
+	endif
+
 	let rangerCallback = {}
 
 	function! rangerCallback.on_exit(id, code, _event)
