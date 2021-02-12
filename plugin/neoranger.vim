@@ -1,4 +1,12 @@
-function! s:RangerOpenDir(...)
+if !exists('g:neoranger_viewmode')
+	let g:neoranger_viewmode='multipane'
+endif
+
+function! s:escape(str)
+	return substitute(shellescape(a:str), '''', '', 'g')
+endfunction
+
+function! s:RangerOpenDirVim(...)
 	let path = a:0 ? a:1 : getcwd()
 
 	if !isdirectory(path)
@@ -6,8 +14,52 @@ function! s:RangerOpenDir(...)
 		return
 	endif
 
-	if !exists('g:neoranger_viewmode')
-		let g:neoranger_viewmode='multipane'
+	let s:ranger_tempfile = tempname()
+
+	let opts = ' --cmd="set viewmode '. g:neoranger_viewmode .'"'
+	let opts .= ' --choosefiles=' . s:escape(s:ranger_tempfile)
+	if a:0 > 1
+		let opts .= ' --selectfile='. s:escape(a:2)
+	else
+		let opts .= ' ' . s:escape(path)
+	endif
+
+	if exists('g:neoranger_opts')
+		let opts .= ' ' . g:neoranger_opts
+	endif
+
+	function! NeoRangerOpenFiles(job, status)
+		exec 'silent! buffer! '. w:_ranger_prev_buf
+		unlet! w:_ranger_prev_buf
+
+		let names = ''
+
+		if filereadable(s:ranger_tempfile)
+			let names = readfile(s:ranger_tempfile)
+		endif
+
+		if empty(names)
+			return
+		endif
+
+		for name in names
+			exec 'edit ' . fnameescape(name)
+			doautocmd BufRead
+		endfor
+	endfunction
+
+	let w:_ranger_prev_buf = bufnr('%')
+
+	let terminal_options = { 'curwin': 1, 'exit_cb': 'NeoRangerOpenFiles' }
+	call term_start('ranger' . opts, terminal_options)
+endfunction
+
+function! s:RangerOpenDir(...)
+	let path = a:0 ? a:1 : getcwd()
+
+	if !isdirectory(path)
+		echom 'Not a directory: ' . path
+		return
 	endif
 
 	let s:ranger_tempfile = tempname()
@@ -26,8 +78,8 @@ function! s:RangerOpenDir(...)
 	let rangerCallback = {}
 
 	function! rangerCallback.on_exit(id, code, _event)
-		" Open previous buffer or new buffer *before* deleting the terminal 
-		" buffer. This ensures that splits don't break if ranger is opened in 
+		" Open previous buffer or new buffer *before* deleting the terminal
+		" buffer. This ensures that splits don't break if ranger is opened in
 		" a split window.
 		if w:_ranger_del_buf != w:_ranger_prev_buf
 			" Restore previous buffer
@@ -66,12 +118,24 @@ function! s:RangerOpenDir(...)
 	startinsert
 endfunction
 
-" Override netrw
-let g:loaded_netrwPlugin = 'disable'
-augroup ReplaceNetrwWithRanger
-	autocmd StdinReadPre * let s:std_in = 1
-	autocmd VimEnter * if argc() == 1 && isdirectory(argv()[0]) && !exists("s:std_in") | call s:RangerOpenDir(argv()[0]) | endif
-augroup END
+if (has('nvim'))
+	" Override netrw
+	let g:loaded_netrwPlugin = 'disable'
+	augroup ReplaceNetrwWithRanger
+		autocmd StdinReadPre * let s:std_in = 1
+		autocmd VimEnter * if argc() == 1 && isdirectory(argv()[0]) && !exists("s:std_in") | call s:RangerOpenDir(argv()[0]) | endif
+	augroup END
 
-command! -complete=dir -nargs=* Ranger :call <SID>RangerOpenDir(<f-args>)
-command! -complete=dir -nargs=* RangerCurrentFile :call <SID>RangerOpenDir(expand('%:p:h'), @%)
+	command! -complete=dir -nargs=* Ranger :call <SID>RangerOpenDir(<f-args>)
+	command! -complete=dir -nargs=* RangerCurrentFile :call <SID>RangerOpenDir(expand('%:p:h'), @%)
+else
+	" Override netrw
+	let g:loaded_netrwPlugin = 'disable'
+	augroup ReplaceNetrwWithRanger
+		autocmd StdinReadPre * let s:std_in = 1
+		autocmd VimEnter * if argc() == 1 && isdirectory(argv()[0]) && !exists("s:std_in") | call s:RangerOpenDirVim(argv()[0]) | endif
+	augroup END
+
+	command! -complete=dir -nargs=* Ranger :call <SID>RangerOpenDirVim(<f-args>)
+	command! -complete=dir -nargs=* RangerCurrentFile :call <SID>RangerOpenDirVim(expand('%:p:h'), @%)
+endif
