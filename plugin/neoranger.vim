@@ -2,7 +2,7 @@ function! s:RangerOpenDir(...)
 	let path = a:0 ? a:1 : getcwd()
 
 	if !isdirectory(path)
-		echom 'Not a directory: ' . path
+		echoerr 'Not a directory: ' . path
 		return
 	endif
 
